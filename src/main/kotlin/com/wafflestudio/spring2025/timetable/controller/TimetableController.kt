@@ -2,6 +2,7 @@ package com.wafflestudio.spring2025.timetable.controller
 
 import com.wafflestudio.spring2025.timetable.dto.AddLectureRequest
 import com.wafflestudio.spring2025.timetable.dto.CreateTimetableRequest
+import com.wafflestudio.spring2025.timetable.dto.DeleteLectureRequest
 import com.wafflestudio.spring2025.timetable.dto.GetTimetableResponse
 import com.wafflestudio.spring2025.timetable.dto.TimetableDetailResponse
 import com.wafflestudio.spring2025.timetable.dto.UpdateTimetableNameRequest
@@ -72,13 +73,23 @@ class TimetableController(
         return ResponseEntity.ok().build()
     }
 
-    @PostMapping("api/v1/timetables/{id}")
+    @PostMapping("api/v1/timetables/{id}/lectures")
     fun addLecture(
         @PathVariable id: Long,
         @LoggedInUser user: User,
         @RequestBody addLectureRequest: AddLectureRequest,
-    ){
+    ): Unit {
         val userId = user.id?:throw AuthenticateException()
         timetableService.addLecture(id, userId, addLectureRequest.lectureId)
+    }
+
+    @DeleteMapping("api/v1/timetables/{id}/lectures")
+    fun deleteLecture(
+        @PathVariable id: Long,
+        @LoggedInUser user: User,
+        @RequestBody deleteLectureRequest: DeleteLectureRequest,
+    ): Unit {
+        val userId = user.id?:throw AuthenticateException()
+        timetableService.deleteLecture(id, userId, deleteLectureRequest.lectureId)
     }
 }

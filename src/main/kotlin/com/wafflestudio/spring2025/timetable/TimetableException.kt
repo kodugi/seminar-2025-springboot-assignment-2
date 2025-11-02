@@ -29,14 +29,14 @@ class TimetableUpdateForbiddenException :
     TimetableException(
         errorCode = 0,
         httpStatusCode = HttpStatus.FORBIDDEN,
-        msg = "You don't have permission to update this post",
+        msg = "You don't have permission to update this timetable",
     )
 
 class TimetableDeleteForbiddenException :
     TimetableException(
         errorCode = 0,
         httpStatusCode = HttpStatus.FORBIDDEN,
-        msg = "You don't have permission to delete this post",
+        msg = "You don't have permission to delete this timetable",
     )
 
 class LectureOverlapException :

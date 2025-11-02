@@ -85,6 +85,7 @@ class TimetableService(
         if(timetable.userId != userId){
             throw TimetableDeleteForbiddenException()
         }
+        timetableLectureRepository.deleteAllByTimetableId(id)
         timetableRepository.delete(timetable)
     }
 
@@ -117,5 +118,14 @@ class TimetableService(
             timetableId = timetableId,
             lectureId = lectureId)
         )
+    }
+
+    fun deleteLecture(timetableId: Long, userId: Long, lectureId: Long): Unit {
+        val lecture = lectureRepository.findById(timetableId).orElseThrow{throw LectureNotFoundException(lectureId)}
+        val lectureSchedule = lectureScheduleRepository.findById(lectureId).orElseThrow{throw LectureNotFoundException(lectureId)}
+        if(lectureSchedule.id != userId){
+            throw TimetableUpdateForbiddenException()
+        }
+        timetableLectureRepository.deleteByLectureId(lectureId)
     }
 }
