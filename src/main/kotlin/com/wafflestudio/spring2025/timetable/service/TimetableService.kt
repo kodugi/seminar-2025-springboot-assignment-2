@@ -17,7 +17,9 @@ import com.wafflestudio.spring2025.timetable.model.Timetable
 import com.wafflestudio.spring2025.timetable.model.TimetableLecture
 import com.wafflestudio.spring2025.timetable.repository.TimetableLectureRepository
 import com.wafflestudio.spring2025.timetable.repository.TimetableRepository
+import org.springframework.stereotype.Service
 
+@Service
 class TimetableService(
     private val timetableRepository : TimetableRepository,
     private val timetableLectureRepository: TimetableLectureRepository,
@@ -72,12 +74,8 @@ class TimetableService(
         if(name.isBlank()){
             throw TimetableBlankNameException()
         }
-        timetableRepository.save(Timetable(
-            year = timetable.year,
-            semester = timetable.semester,
-            name = name,
-            userId = userId
-        ))
+        timetable.name = name
+        timetableRepository.save(timetable)
     }
 
     fun deleteTimetable(id: Long, userId: Long): Unit {
@@ -121,11 +119,11 @@ class TimetableService(
     }
 
     fun deleteLecture(timetableId: Long, userId: Long, lectureId: Long): Unit {
-        val lecture = lectureRepository.findById(timetableId).orElseThrow{throw LectureNotFoundException(lectureId)}
-        val lectureSchedule = lectureScheduleRepository.findById(lectureId).orElseThrow{throw LectureNotFoundException(lectureId)}
-        if(lectureSchedule.id != userId){
+        val timetable = timetableRepository.findById(timetableId).orElseThrow{throw LectureNotFoundException(lectureId)}
+        val lecture = lectureRepository.findById(lectureId).orElseThrow{throw LectureNotFoundException(lectureId)}
+        if(timetable.userId != userId){
             throw TimetableUpdateForbiddenException()
         }
-        timetableLectureRepository.deleteByLectureId(lectureId)
+        timetableLectureRepository.deleteByTimetableIdAndLectureId(timetableId, lectureId)
     }
 }

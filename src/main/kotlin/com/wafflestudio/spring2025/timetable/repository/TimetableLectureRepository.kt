@@ -28,5 +28,5 @@ interface TimetableLectureRepository : ListCrudRepository<TimetableLecture, Long
      */
     fun deleteAllByTimetableId(timetableId: Long)
 
-    fun deleteByLectureId(lectureId: Long)
+    fun deleteByTimetableIdAndLectureId(timetableId: Long, lectureId: Long)
 }

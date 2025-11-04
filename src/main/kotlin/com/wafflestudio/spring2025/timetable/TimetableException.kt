@@ -42,6 +42,6 @@ class TimetableDeleteForbiddenException :
 class LectureOverlapException :
     TimetableException(
         errorCode = 0,
-        httpStatusCode = HttpStatus.BAD_REQUEST,
+        httpStatusCode = HttpStatus.CONFLICT,
         msg = "The lecture has overlapping schedule with other lectures"
     )

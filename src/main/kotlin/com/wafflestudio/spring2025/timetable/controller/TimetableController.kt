@@ -6,6 +6,7 @@ import com.wafflestudio.spring2025.timetable.dto.DeleteLectureRequest
 import com.wafflestudio.spring2025.timetable.dto.GetTimetableResponse
 import com.wafflestudio.spring2025.timetable.dto.TimetableDetailResponse
 import com.wafflestudio.spring2025.timetable.dto.UpdateTimetableNameRequest
+import com.wafflestudio.spring2025.timetable.model.Timetable
 import com.wafflestudio.spring2025.timetable.service.TimetableService
 import com.wafflestudio.spring2025.user.AuthenticateException
 import com.wafflestudio.spring2025.user.LoggedInUser
@@ -57,7 +58,7 @@ class TimetableController(
         @PathVariable id: Long,
         @LoggedInUser user: User,
         @RequestBody updateRequest: UpdateTimetableNameRequest,
-    ): ResponseEntity<Unit> {
+    ): ResponseEntity<Timetable> {
         val userId = user.id?:throw AuthenticateException()
         timetableService.updateTimetableName(id, updateRequest.name, userId)
         return ResponseEntity.ok().build()

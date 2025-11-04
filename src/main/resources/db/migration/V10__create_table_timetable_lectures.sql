@@ -1,9 +1,12 @@
 CREATE TABLE timetable_lectures (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY, -- 각 연결 레코드의 고유 ID
-    timetable_id    BIGINT NOT NULL,          -- 어떤 시간표(timetables 테이블)에 속하는지
-    lecture_id      BIGINT NOT NULL,          -- 어떤 강의(lectures 테이블)가 포함되는지
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- 각 연결 레코드의 고유 ID
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    -- 어떤 시간표(timetables 테이블)에 속하는지
+    timetable_id    BIGINT NOT NULL,
+    -- 어떤 강의(lectures 테이블)가 포함되는지
+    lecture_id      BIGINT NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
 
     FOREIGN KEY (timetable_id) REFERENCES timetables (id) ON DELETE CASCADE,

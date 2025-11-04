@@ -6,6 +6,7 @@ import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 
+@Table(value = "timetable_lectures")
 class TimetableLecture (
     @Id
     var id: Long? = null,
