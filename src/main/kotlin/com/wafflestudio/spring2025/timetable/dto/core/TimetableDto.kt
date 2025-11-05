@@ -8,7 +8,7 @@ class TimetableDto(
     val semester: String,
     val name: String,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
 ) {
     constructor(timetable: Timetable) : this(
         id = timetable.id!!,

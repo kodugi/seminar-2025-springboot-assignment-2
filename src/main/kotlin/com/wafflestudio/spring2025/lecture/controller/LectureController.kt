@@ -16,8 +16,6 @@ class LectureController(
         @RequestParam("year") year: Int,
         @RequestParam("semester") semester: String,
         @RequestParam("keyword") keyword: String,
-        pageable: Pageable
-    ): LectureSearchResponse {
-        return lectureService.search(year, semester, keyword, pageable)
-    }
+        pageable: Pageable,
+    ): LectureSearchResponse = lectureService.search(year, semester, keyword, pageable)
 }

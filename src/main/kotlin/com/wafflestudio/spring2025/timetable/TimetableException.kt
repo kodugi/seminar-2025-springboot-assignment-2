@@ -50,5 +50,5 @@ class LectureOverlapException :
     TimetableException(
         errorCode = 0,
         httpStatusCode = HttpStatus.CONFLICT,
-        msg = "The lecture has overlapping schedule with other lectures"
+        msg = "The lecture has overlapping schedule with other lectures",
     )

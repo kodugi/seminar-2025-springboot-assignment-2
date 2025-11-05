@@ -105,7 +105,7 @@ class DataGenerator(
                     year = year ?: 2025,
                     semester = semester ?: "",
                     name = name ?: "name-${Random.Default.nextInt(1000000)}",
-                )
+                ),
             )
         return timetable
     }
@@ -141,7 +141,7 @@ class DataGenerator(
                     department = department ?: "",
                     academicCourse = academicCourse ?: "",
                     academicYear = academicYear ?: "",
-                )
+                ),
             )
         return lecture
     }
@@ -153,27 +153,28 @@ class DataGenerator(
         endTime: String? = null,
         place: String? = null,
     ): LectureSchedule {
-        val lectureSchedule = lectureScheduleRepository.save(
-            LectureSchedule(
-                lectureId = lecture.id!!,
-                dayOfWeek = dayOfWeek ?: 7,
-                startTime = LocalTime.parse(startTime ?: "9:30"),
-                endTime = LocalTime.parse(endTime ?: "10:45"),
-                place = place ?: "301-118",
+        val lectureSchedule =
+            lectureScheduleRepository.save(
+                LectureSchedule(
+                    lectureId = lecture.id!!,
+                    dayOfWeek = dayOfWeek ?: 7,
+                    startTime = LocalTime.parse(startTime ?: "9:30"),
+                    endTime = LocalTime.parse(endTime ?: "10:45"),
+                    place = place ?: "301-118",
+                ),
             )
-        )
         return lectureSchedule
     }
 
     fun addLectureToTimetable(
         timetable: Timetable,
         lecture: Lecture,
-    ): Unit {
+    ) {
         timetableLectureRepository.save(
             TimetableLecture(
                 timetableId = timetable.id!!,
                 lectureId = lecture.id!!,
-            )
+            ),
         )
     }
 }

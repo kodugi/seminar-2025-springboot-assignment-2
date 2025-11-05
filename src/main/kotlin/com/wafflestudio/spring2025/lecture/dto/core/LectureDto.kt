@@ -18,7 +18,7 @@ data class LectureDto(
     val department: String?,
     val academicCourse: String?,
     val academicYear: String?,
-    val schedules: List<LectureScheduleDto>
+    val schedules: List<LectureScheduleDto>,
 ) {
     constructor(lecture: Lecture, schedules: List<LectureSchedule>) : this(
         id = lecture.id!!,
@@ -35,7 +35,7 @@ data class LectureDto(
         department = lecture.department,
         academicCourse = lecture.academicCourse,
         academicYear = lecture.academicYear,
-        schedules = schedules.map { LectureScheduleDto(it) }
+        schedules = schedules.map { LectureScheduleDto(it) },
     )
 }
 
@@ -43,12 +43,12 @@ data class LectureScheduleDto(
     val dayOfWeek: Int,
     val startTime: String,
     val endTime: String,
-    val place: String?
+    val place: String?,
 ) {
     constructor(schedule: LectureSchedule) : this(
         dayOfWeek = schedule.dayOfWeek,
         startTime = schedule.startTime.toString(),
         endTime = schedule.endTime.toString(),
-        place = schedule.place
+        place = schedule.place,
     )
 }

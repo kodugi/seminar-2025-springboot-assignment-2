@@ -4,7 +4,6 @@ import com.wafflestudio.spring2025.timetable.model.TimetableLecture
 import org.springframework.data.repository.ListCrudRepository
 
 interface TimetableLectureRepository : ListCrudRepository<TimetableLecture, Long> {
-
     /**
      * 특정 시간표(timetableId)에 포함된 모든 강의 연결 정보를 조회한다.
      * (시간표 상세 조회 시 사용)
@@ -20,7 +19,10 @@ interface TimetableLectureRepository : ListCrudRepository<TimetableLecture, Long
      * @param lectureId 강의 ID
      * @return TimetableLecture? 해당 연결 정보 (없으면 null)
      */
-    fun findByTimetableIdAndLectureId(timetableId: Long, lectureId: Long): TimetableLecture?
+    fun findByTimetableIdAndLectureId(
+        timetableId: Long,
+        lectureId: Long,
+    ): TimetableLecture?
 
     /**
      * 특정 시간표(timetableId)에 포함된 모든 강의 연결 정보를 삭제한다.
@@ -28,5 +30,8 @@ interface TimetableLectureRepository : ListCrudRepository<TimetableLecture, Long
      */
     fun deleteAllByTimetableId(timetableId: Long)
 
-    fun deleteByTimetableIdAndLectureId(timetableId: Long, lectureId: Long)
+    fun deleteByTimetableIdAndLectureId(
+        timetableId: Long,
+        lectureId: Long,
+    )
 }
