@@ -14,7 +14,7 @@ class LectureCrawlerController(
 ) {
     fun getYearAndSemester(semester: String): Pair<Int, String> {
         val year = semester.substring(0,semester.length-2).toInt()
-        val semester = semester.substring(semester.length-2)
+        val semester = semester.substring(semester.length-1)
         return Pair(year, semester)
     }
 

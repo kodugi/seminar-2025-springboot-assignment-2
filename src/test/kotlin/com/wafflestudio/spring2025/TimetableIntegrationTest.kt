@@ -313,7 +313,7 @@ class TimetableIntegrationTest
         fun `should return correct course list and total credits when retrieving timetable details`() {
             // 시간표 상세 조회 시, 강의 정보 목록과 총 학점이 올바르게 반환된다
             val (user, token) = dataGenerator.generateUser()
-            val timetable = dataGenerator.generateTimetable(user = user, year = 2025, semester = "1", name = "학점 계산 시간표")
+            val timetable = dataGenerator.generateTimetable(user = user, year = 2025, semester = "1", name = "시간표 1")
 
             val lecture1 = dataGenerator.generateLecture(year = 2025, semester = "1", credit = 3, courseNumber = "001")
             val lecture2 = dataGenerator.generateLecture(year = 2025, semester = "1", credit = 3, courseNumber = "002")
@@ -338,7 +338,7 @@ class TimetableIntegrationTest
             val (_, token) = dataGenerator.generateUser()
 
             (1..25).forEach {
-                dataGenerator.generateLecture(year = 2025, semester = "1", courseTitle = "테스트 강의 $it", courseNumber = "$it")
+                dataGenerator.generateLecture(year = 2025, semester = "1", courseTitle = "컴퓨터의 개념 및 실습", lectureNumber = "$it")
             }
 
             mvc
@@ -346,7 +346,7 @@ class TimetableIntegrationTest
                     get("/api/v1/lectures")
                         .param("year", "2025")
                         .param("semester", "1")
-                        .param("keyword", "테스트 강의")
+                        .param("keyword", "컴퓨터의 개념 및 실습")
                         .param("page", "0")
                         .param("size", "10")
                         .header("Authorization", "Bearer $token"),
@@ -361,7 +361,7 @@ class TimetableIntegrationTest
                     get("/api/v1/lectures")
                         .param("year", "2025")
                         .param("semester", "1")
-                        .param("keyword", "테스트 강의")
+                        .param("keyword", "컴퓨터의 개념 및 실습")
                         .param("page", "2")
                         .param("size", "10")
                         .header("Authorization", "Bearer $token"),
