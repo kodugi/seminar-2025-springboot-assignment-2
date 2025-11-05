@@ -19,8 +19,6 @@ class LectureService(
         keyword: String,
         pageable: Pageable,
     ): LectureSearchResponse {
-        // (수정됨)
-        // 1. 데이터 목록 조회 (수동 페이징 파라미터 전달)
         val lectures =
             lectureRepository.findLecturesByKeyword(
                 year = year,
@@ -30,7 +28,6 @@ class LectureService(
                 offset = pageable.offset,
             )
 
-        // 2. 전체 개수 조회
         val totalCount =
             lectureRepository.countLecturesByKeyword(
                 year = year,
@@ -38,10 +35,8 @@ class LectureService(
                 keyword = keyword,
             )
 
-        // 3. PageImpl을 사용해 Page 객체 수동 생성
         val lecturePage = PageImpl(lectures, pageable, totalCount)
 
-        // (기존 코드와 동일)
         val lectureDtos =
             lecturePage.map {
                 val schedules = scheduleRepository.findAllByLectureId(it.id!!)

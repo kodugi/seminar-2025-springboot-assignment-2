@@ -298,9 +298,15 @@ class TimetableIntegrationTest
         }
 
         @Test
-        @Disabled("곧 안내드리겠습니다")
         fun `should fetch and save course information from SNU course registration site`() {
             // 서울대 수강신청 사이트에서 강의 정보를 가져와 저장할 수 있다
+            val (user, token) = dataGenerator.generateUser()
+            mvc
+                .perform(
+                    post("/api/v1/lectures/fetch")
+                        .header("Authorization", "Bearer $token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk)
         }
 
         @Test

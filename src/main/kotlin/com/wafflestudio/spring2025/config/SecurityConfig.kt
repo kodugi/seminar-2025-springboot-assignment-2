@@ -1,6 +1,8 @@
 package com.wafflestudio.spring2025.config
 
 import com.wafflestudio.spring2025.user.JwtAuthenticationFilter
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
+import io.swagger.v3.oas.annotations.security.SecurityScheme
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -9,6 +11,12 @@ import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
+@SecurityScheme(
+    name = "bearerAuth",
+    type = SecuritySchemeType.HTTP,
+    scheme = "bearer",
+    bearerFormat = "JWT"
+)
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
@@ -34,7 +42,7 @@ class SecurityConfig(
                         "/v3/api-docs/**"
                     ).permitAll()
 
-                    .requestMatchers("/api/v1/user/register", "/api/v1/user/login").permitAll()
+                    .requestMatchers("/api/v1/auth/**").permitAll()
 
                     .anyRequest().authenticated()
             }

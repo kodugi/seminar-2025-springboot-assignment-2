@@ -3,6 +3,8 @@ package com.wafflestudio.spring2025.user
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
@@ -11,12 +13,25 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
 ) : OncePerRequestFilter() {
+
+    private val pathMatcher = AntPathMatcher()
+
+    private val publicPaths = listOf(
+        "/",
+        "/swagger-ui.html",
+        "/swagger-ui/**",
+        "/v3/api-docs",
+        "/v3/api-docs/**",
+        "/api/v1/auth/**"
+        //
+    )
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        if (isPublicPath(request.requestURI)) {
+        if (publicPaths.any { path -> pathMatcher.match(path, request.requestURI) }) {
             filterChain.doFilter(request, response)
             return
         }
@@ -25,11 +40,17 @@ class JwtAuthenticationFilter(
 
         if (token != null && jwtTokenProvider.validateToken(token)) {
             val username = jwtTokenProvider.getUsername(token)
+            val authentication = UsernamePasswordAuthenticationToken(
+                username,
+                null,
+                emptyList()
+            )
+            SecurityContextHolder.getContext().authentication = authentication
             request.setAttribute("username", username)
-        } /*else {
+        } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing token")
             return
-        }*/
+        }
 
         filterChain.doFilter(request, response)
     }
@@ -40,10 +61,5 @@ class JwtAuthenticationFilter(
             return bearerToken.substring(7)
         }
         return null
-    }
-
-    private fun isPublicPath(path: String): Boolean {
-        val pathMatcher = AntPathMatcher()
-        return pathMatcher.match("/api/v1/auth/**", path)
     }
 }

@@ -43,6 +43,7 @@ dependencies {
     implementation("com.mysql:mysql-connector-j")
     implementation("org.flywaydb:flyway-mysql")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.apache.poi:poi:4.1.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
@@ -50,6 +51,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 }
 
 kotlin {
