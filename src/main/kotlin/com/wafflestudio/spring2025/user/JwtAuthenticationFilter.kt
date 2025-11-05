@@ -26,10 +26,10 @@ class JwtAuthenticationFilter(
         if (token != null && jwtTokenProvider.validateToken(token)) {
             val username = jwtTokenProvider.getUsername(token)
             request.setAttribute("username", username)
-        } else {
+        } /*else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing token")
             return
-        }
+        }*/
 
         filterChain.doFilter(request, response)
     }
