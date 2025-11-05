@@ -43,6 +43,7 @@ dependencies {
     implementation("com.mysql:mysql-connector-j")
     implementation("org.flywaydb:flyway-mysql")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
