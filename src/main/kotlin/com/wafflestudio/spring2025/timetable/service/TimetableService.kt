@@ -5,6 +5,7 @@ import com.wafflestudio.spring2025.lecture.dto.core.LectureDto
 import com.wafflestudio.spring2025.lecture.repository.LectureRepository
 import com.wafflestudio.spring2025.lecture.repository.LectureScheduleRepository
 import com.wafflestudio.spring2025.timetable.LectureOverlapException
+import com.wafflestudio.spring2025.timetable.TimetableAccessForbiddenException
 import com.wafflestudio.spring2025.timetable.TimetableBlankNameException
 import com.wafflestudio.spring2025.timetable.TimetableDeleteForbiddenException
 import com.wafflestudio.spring2025.timetable.TimetableNotFoundException
@@ -21,41 +22,51 @@ import org.springframework.stereotype.Service
 
 @Service
 class TimetableService(
-    private val timetableRepository : TimetableRepository,
+    private val timetableRepository: TimetableRepository,
     private val timetableLectureRepository: TimetableLectureRepository,
     private val lectureRepository: LectureRepository,
-    private val lectureScheduleRepository : LectureScheduleRepository
+    private val lectureScheduleRepository: LectureScheduleRepository,
 ) {
     fun create(year: Int, semester: String, name: String, userId: Long): CreateTimetableResponse {
-        if(name.isBlank()){
+        if (name.isBlank()) {
             throw TimetableBlankNameException()
         }
-        val timetable = timetableRepository.save(Timetable(
-            year = year,
-            semester = semester,
-            name = name,
-            userId = userId
-        ))
+        val timetable =
+            timetableRepository.save(
+                Timetable(
+                    year = year,
+                    semester = semester,
+                    name = name,
+                    userId = userId,
+                ),
+            )
         return TimetableDto(timetable)
     }
 
     fun get(userId: Long): GetTimetableResponse {
         val timetables = timetableRepository.findAllByUserId(userId)
+            .sortedWith(
+                compareByDescending<Timetable> { it.year }
+                    .thenBy { it.semester }
+                    .thenBy { it.name },
+            )
         return timetables.map { TimetableDto(it) }
     }
 
-    fun getTimetableDetail(id: Long): TimetableDetailResponse {
-        val timetable = timetableRepository.findById(id).orElseThrow{throw TimetableNotFoundException()}
+    fun getTimetableDetail(id: Long, userId: Long): TimetableDetailResponse {
+        val timetable = timetableRepository.findById(id).orElseThrow { TimetableNotFoundException() }
+        if (timetable.userId != userId) {
+            throw TimetableAccessForbiddenException()
+        }
         val timetableLectures = timetableLectureRepository.findAllByTimetableId(id)
-        var totalCredit = 0
         val lecturesDto = timetableLectures.map {
-            val lecture = lectureRepository.findById(it.lectureId).orElseThrow { throw LectureNotFoundException(it.lectureId) }
-            totalCredit += lecture.credit
+            val lecture = lectureRepository.findById(it.lectureId).orElseThrow { LectureNotFoundException(it.lectureId) }
             LectureDto(
                 lecture,
-                lectureScheduleRepository.findAllByLectureId(it.lectureId)
+                lectureScheduleRepository.findAllByLectureId(it.lectureId),
             )
         }
+        val totalCredit = lecturesDto.sumOf { it.credit }
         return TimetableDetailResponse(
             id = timetable.id!!,
             year = timetable.year,
@@ -66,45 +77,44 @@ class TimetableService(
         )
     }
 
-    fun updateTimetableName(id: Long, name: String, userId: Long): Unit {
-        val timetable = timetableRepository.findById(id).orElseThrow{throw TimetableNotFoundException()}
-        if(timetable.userId != userId){
+    fun updateTimetableName(id: Long, name: String, userId: Long) {
+        val timetable = timetableRepository.findById(id).orElseThrow { TimetableNotFoundException() }
+        if (timetable.userId != userId) {
             throw TimetableUpdateForbiddenException()
         }
-        if(name.isBlank()){
+        if (name.isBlank()) {
             throw TimetableBlankNameException()
         }
         timetable.name = name
         timetableRepository.save(timetable)
     }
 
-    fun deleteTimetable(id: Long, userId: Long): Unit {
-        val timetable = timetableRepository.findById(id).orElseThrow{throw TimetableNotFoundException()}
-        if(timetable.userId != userId){
+    fun deleteTimetable(id: Long, userId: Long) {
+        val timetable = timetableRepository.findById(id).orElseThrow { TimetableNotFoundException() }
+        if (timetable.userId != userId) {
             throw TimetableDeleteForbiddenException()
         }
         timetableLectureRepository.deleteAllByTimetableId(id)
         timetableRepository.delete(timetable)
     }
 
-    fun addLecture(timetableId: Long, userId: Long, lectureId: Long): Unit {
-        val timetable = timetableRepository.findById(timetableId).orElseThrow{throw TimetableNotFoundException()}
-        if(timetable.userId != userId){
+    fun addLecture(timetableId: Long, userId: Long, lectureId: Long) {
+        val timetable = timetableRepository.findById(timetableId).orElseThrow { TimetableNotFoundException() }
+        if (timetable.userId != userId) {
             throw TimetableUpdateForbiddenException()
         }
-        val lecture = lectureRepository.findById(lectureId).orElseThrow{throw LectureNotFoundException(lectureId)}
+        lectureRepository.findById(lectureId).orElseThrow { LectureNotFoundException(lectureId) }
         val lectureSchedules = lectureScheduleRepository.findAllByLectureId(lectureId)
         val otherLectures = timetableLectureRepository.findAllByTimetableId(timetableId)
-        otherLectures.forEach {
-            val otherLectureSchedules = lectureScheduleRepository.findAllByLectureId(it.lectureId)
-            otherLectureSchedules.forEach {
-                val otherSchedule = it
-                lectureSchedules.forEach {
-                    if(otherSchedule.dayOfWeek == it.dayOfWeek){
-                        if(otherSchedule.startTime <= it.startTime && otherSchedule.endTime > it.startTime){
-                            throw LectureOverlapException()
-                        }
-                        if(otherSchedule.startTime < it.endTime && otherSchedule.endTime >= it.endTime){
+        otherLectures.forEach { relation ->
+            val otherLectureSchedules = lectureScheduleRepository.findAllByLectureId(relation.lectureId)
+            otherLectureSchedules.forEach { otherSchedule ->
+                lectureSchedules.forEach { newSchedule ->
+                    if (otherSchedule.dayOfWeek == newSchedule.dayOfWeek) {
+                        val isOverlapped =
+                            otherSchedule.startTime < newSchedule.endTime &&
+                                newSchedule.startTime < otherSchedule.endTime
+                        if (isOverlapped) {
                             throw LectureOverlapException()
                         }
                     }
@@ -112,18 +122,22 @@ class TimetableService(
             }
         }
 
-        timetableLectureRepository.save(TimetableLecture(
-            timetableId = timetableId,
-            lectureId = lectureId)
+        timetableLectureRepository.save(
+            TimetableLecture(
+                timetableId = timetableId,
+                lectureId = lectureId,
+            ),
         )
     }
 
-    fun deleteLecture(timetableId: Long, userId: Long, lectureId: Long): Unit {
-        val timetable = timetableRepository.findById(timetableId).orElseThrow{throw LectureNotFoundException(lectureId)}
-        val lecture = lectureRepository.findById(lectureId).orElseThrow{throw LectureNotFoundException(lectureId)}
-        if(timetable.userId != userId){
+    fun deleteLecture(timetableId: Long, userId: Long, lectureId: Long) {
+        val timetable = timetableRepository.findById(timetableId).orElseThrow { TimetableNotFoundException() }
+        if (timetable.userId != userId) {
             throw TimetableUpdateForbiddenException()
         }
-        timetableLectureRepository.deleteByTimetableIdAndLectureId(timetableId, lectureId)
+        lectureRepository.findById(lectureId).orElseThrow { LectureNotFoundException(lectureId) }
+        val relation = timetableLectureRepository.findByTimetableIdAndLectureId(timetableId, lectureId)
+            ?: throw LectureNotFoundException(lectureId)
+        timetableLectureRepository.delete(relation)
     }
 }

@@ -39,6 +39,13 @@ class TimetableDeleteForbiddenException :
         msg = "You don't have permission to delete this timetable",
     )
 
+class TimetableAccessForbiddenException :
+    TimetableException(
+        errorCode = 0,
+        httpStatusCode = HttpStatus.FORBIDDEN,
+        msg = "You don't have permission to access this timetable",
+    )
+
 class LectureOverlapException :
     TimetableException(
         errorCode = 0,

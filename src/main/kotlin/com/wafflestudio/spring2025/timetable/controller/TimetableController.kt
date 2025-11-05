@@ -2,11 +2,11 @@ package com.wafflestudio.spring2025.timetable.controller
 
 import com.wafflestudio.spring2025.timetable.dto.AddLectureRequest
 import com.wafflestudio.spring2025.timetable.dto.CreateTimetableRequest
+import com.wafflestudio.spring2025.timetable.dto.CreateTimetableResponse
 import com.wafflestudio.spring2025.timetable.dto.DeleteLectureRequest
 import com.wafflestudio.spring2025.timetable.dto.GetTimetableResponse
 import com.wafflestudio.spring2025.timetable.dto.TimetableDetailResponse
 import com.wafflestudio.spring2025.timetable.dto.UpdateTimetableNameRequest
-import com.wafflestudio.spring2025.timetable.model.Timetable
 import com.wafflestudio.spring2025.timetable.service.TimetableService
 import com.wafflestudio.spring2025.user.AuthenticateException
 import com.wafflestudio.spring2025.user.LoggedInUser
@@ -28,29 +28,33 @@ class TimetableController(
     fun create(
         @LoggedInUser user: User,
         @RequestBody createRequest: CreateTimetableRequest,
-    ): ResponseEntity<CreateTimetableRequest> {
-        val userId = user.id?:throw AuthenticateException()
+    ): ResponseEntity<CreateTimetableResponse> {
+        val userId = user.id ?: throw AuthenticateException()
         val timetableDto = timetableService.create(
             year = createRequest.year,
             semester = createRequest.semester,
             name = createRequest.name,
-            userId = userId
+            userId = userId,
         )
-        return ResponseEntity.ok(createRequest)
+        return ResponseEntity.ok(timetableDto)
     }
 
     @GetMapping("api/v1/timetables")
-    fun geetTimetables(
+    fun getTimetables(
         @LoggedInUser user: User,
     ): ResponseEntity<GetTimetableResponse> {
-        val userId = user.id?:throw AuthenticateException()
+        val userId = user.id ?: throw AuthenticateException()
         val getTimetableResponse = timetableService.get(userId)
         return ResponseEntity.ok(getTimetableResponse)
     }
 
     @GetMapping("api/v1/timetables/{id}")
-    fun getTimetableDetail(@PathVariable id: Long): ResponseEntity<TimetableDetailResponse> {
-        return ResponseEntity.ok(timetableService.getTimetableDetail(id))
+    fun getTimetableDetail(
+        @PathVariable id: Long,
+        @LoggedInUser user: User,
+    ): ResponseEntity<TimetableDetailResponse> {
+        val userId = user.id ?: throw AuthenticateException()
+        return ResponseEntity.ok(timetableService.getTimetableDetail(id, userId))
     }
 
     @PatchMapping("api/v1/timetables/{id}")
@@ -58,8 +62,8 @@ class TimetableController(
         @PathVariable id: Long,
         @LoggedInUser user: User,
         @RequestBody updateRequest: UpdateTimetableNameRequest,
-    ): ResponseEntity<Timetable> {
-        val userId = user.id?:throw AuthenticateException()
+    ): ResponseEntity<Unit> {
+        val userId = user.id ?: throw AuthenticateException()
         timetableService.updateTimetableName(id, updateRequest.name, userId)
         return ResponseEntity.ok().build()
     }
@@ -69,7 +73,7 @@ class TimetableController(
         @PathVariable id: Long,
         @LoggedInUser user: User,
     ): ResponseEntity<Unit> {
-        val userId = user.id?:throw AuthenticateException()
+        val userId = user.id ?: throw AuthenticateException()
         timetableService.deleteTimetable(id, userId)
         return ResponseEntity.ok().build()
     }
@@ -79,9 +83,10 @@ class TimetableController(
         @PathVariable id: Long,
         @LoggedInUser user: User,
         @RequestBody addLectureRequest: AddLectureRequest,
-    ): Unit {
-        val userId = user.id?:throw AuthenticateException()
+    ): ResponseEntity<Unit> {
+        val userId = user.id ?: throw AuthenticateException()
         timetableService.addLecture(id, userId, addLectureRequest.lectureId)
+        return ResponseEntity.ok().build()
     }
 
     @DeleteMapping("api/v1/timetables/{id}/lectures")
@@ -89,8 +94,9 @@ class TimetableController(
         @PathVariable id: Long,
         @LoggedInUser user: User,
         @RequestBody deleteLectureRequest: DeleteLectureRequest,
-    ): Unit {
-        val userId = user.id?:throw AuthenticateException()
+    ): ResponseEntity<Unit> {
+        val userId = user.id ?: throw AuthenticateException()
         timetableService.deleteLecture(id, userId, deleteLectureRequest.lectureId)
+        return ResponseEntity.ok().build()
     }
 }
