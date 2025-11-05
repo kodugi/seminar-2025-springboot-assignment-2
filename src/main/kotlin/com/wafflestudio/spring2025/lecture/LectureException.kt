@@ -11,9 +11,11 @@ sealed class TimetableException(
     cause: Throwable? = null,
 ) : DomainException(errorCode, httpStatusCode, msg, cause)
 
-class LectureNotFoundException(lectureId: Long) : TimetableException(
-    errorCode = 0,
-    httpStatusCode = HttpStatus.NOT_FOUND,
-    msg = "Lecture not found",
-    cause = null,
-)
+class LectureNotFoundException(
+    lectureId: Long,
+) : TimetableException(
+        errorCode = 0,
+        httpStatusCode = HttpStatus.NOT_FOUND,
+        msg = "Lecture not found",
+        cause = null,
+    )

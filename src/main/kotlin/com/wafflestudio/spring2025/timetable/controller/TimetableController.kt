@@ -30,12 +30,13 @@ class TimetableController(
         @RequestBody createRequest: CreateTimetableRequest,
     ): ResponseEntity<CreateTimetableResponse> {
         val userId = user.id ?: throw AuthenticateException()
-        val timetableDto = timetableService.create(
-            year = createRequest.year,
-            semester = createRequest.semester,
-            name = createRequest.name,
-            userId = userId,
-        )
+        val timetableDto =
+            timetableService.create(
+                year = createRequest.year,
+                semester = createRequest.semester,
+                name = createRequest.name,
+                userId = userId,
+            )
         return ResponseEntity.ok(timetableDto)
     }
 
@@ -44,8 +45,8 @@ class TimetableController(
         @LoggedInUser user: User,
     ): ResponseEntity<GetTimetableResponse> {
         val userId = user.id ?: throw AuthenticateException()
-        val getTimetableResponse = timetableService.get(userId)
-        return ResponseEntity.ok(getTimetableResponse)
+        val response = timetableService.get(userId)
+        return ResponseEntity.ok(response)
     }
 
     @GetMapping("api/v1/timetables/{id}")

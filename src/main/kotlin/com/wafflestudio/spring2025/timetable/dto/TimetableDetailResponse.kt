@@ -12,5 +12,5 @@ data class TimetableDetailResponse(
     // 시간표에 포함된 강의 상세 정보 목록
     val lectures: List<LectureDto>,
     // 시간표에 포함된 강의들의 총 학점
-    val totalCredit: Int
+    val totalCredit: Int,
 )
