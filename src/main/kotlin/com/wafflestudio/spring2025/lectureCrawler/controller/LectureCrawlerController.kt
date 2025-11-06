@@ -24,7 +24,10 @@ class LectureCrawlerController(
         return Pair(year, semesterStr)
     }
 
-    @Operation(security = [])
+    @Operation(
+        security = [],
+        summary = "강의 크롤링",
+        description = "연도와 학기를 입력받아 해당 학기의 강의 데이터를 저장")
     @PostMapping("/api/v1/lectures/fetch")
     suspend fun crawlLectures(
         @RequestParam(defaultValue = "2025-1")

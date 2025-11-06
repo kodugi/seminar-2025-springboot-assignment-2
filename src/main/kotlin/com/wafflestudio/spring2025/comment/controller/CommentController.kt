@@ -8,6 +8,7 @@ import com.wafflestudio.spring2025.comment.dto.core.CommentDto
 import com.wafflestudio.spring2025.comment.service.CommentService
 import com.wafflestudio.spring2025.user.LoggedInUser
 import com.wafflestudio.spring2025.user.model.User
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -24,6 +25,10 @@ class CommentController(
     private val commentService: CommentService,
 ) {
     @GetMapping
+    @Operation(
+        summary = "댓글 목록 조회",
+        description = "게시글 Id를 받아 해당 게시글의 댓글 목록 조회"
+    )
     fun list(
         @PathVariable postId: Long,
     ): ResponseEntity<List<CommentDto>> {
@@ -32,6 +37,10 @@ class CommentController(
     }
 
     @PostMapping
+    @Operation(
+        summary = "댓글 생성",
+        description = "게시글 Id와 내용을 입력받아 댓글 생성"
+    )
     fun create(
         @PathVariable postId: Long,
         @RequestBody createRequest: CreateCommentRequest,
@@ -47,6 +56,10 @@ class CommentController(
     }
 
     @PutMapping("/{id}")
+    @Operation(
+        summary = "댓글 수정",
+        description = "게시글 Id, 댓글 Id, 수정 내용을 입력받아 댓글 수정"
+    )
     fun update(
         @PathVariable postId: Long,
         @PathVariable id: Long,
@@ -64,6 +77,10 @@ class CommentController(
     }
 
     @DeleteMapping("/{id}")
+    @Operation(
+        summary = "댓글 삭제",
+        description = "게시글 Id와 댓글 Id를 입력받아 해당 댓글 삭제"
+    )
     fun delete(
         @PathVariable postId: Long,
         @PathVariable id: Long,

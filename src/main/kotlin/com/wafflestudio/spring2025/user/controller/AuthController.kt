@@ -5,6 +5,7 @@ import com.wafflestudio.spring2025.user.dto.LoginResponse
 import com.wafflestudio.spring2025.user.dto.RegisterRequest
 import com.wafflestudio.spring2025.user.dto.RegisterResponse
 import com.wafflestudio.spring2025.user.service.UserService
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -17,6 +18,10 @@ class AuthController(
     private val userService: UserService,
 ) {
     @PostMapping("/register")
+    @Operation(
+        summary = "회원가입",
+        description = "사용자 이름과 비밀번호를 입력받아 사용자를 저장"
+    )
     fun register(
         @RequestBody registerRequest: RegisterRequest,
     ): ResponseEntity<RegisterResponse> {
@@ -29,6 +34,10 @@ class AuthController(
     }
 
     @PostMapping("/login")
+    @Operation(
+        summary = "로그인",
+        description = "사용자 이름과 비밀번호를 입력받아 인증 토큰 발급 및 로그인"
+    )
     fun login(
         @RequestBody loginRequest: LoginRequest,
     ): ResponseEntity<LoginResponse> {
