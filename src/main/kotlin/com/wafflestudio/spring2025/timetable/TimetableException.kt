@@ -46,9 +46,16 @@ class TimetableAccessForbiddenException :
         msg = "You don't have permission to access this timetable",
     )
 
-class LectureOverlapException :
+class LectureTimeOverlapException :
     TimetableException(
         errorCode = 0,
         httpStatusCode = HttpStatus.CONFLICT,
         msg = "The lecture has overlapping schedule with other lectures",
     )
+
+class LectureOverlapException :
+        TimetableException(
+            errorCode = 0,
+            httpStatusCode = HttpStatus.CONFLICT,
+            msg = "The lecture has overlapping course number with other lectures",
+        )

@@ -22,3 +22,7 @@ logging:
             JdbcTemplate: DEBUG
             namedparam:
               NamedParameterJdbcTemplate: TRACE
+
+snu:
+  api:
+    base-url: https://sugang.snu.ac.kr

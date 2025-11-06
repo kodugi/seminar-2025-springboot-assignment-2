@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.wafflestudio.spring2025.lectureCrawler.dto.LectureCrawlerDto
 import org.springframework.core.io.buffer.PooledDataBuffer
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
+import org.springframework.util.LinkedMultiValueMap
+import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
@@ -17,6 +20,7 @@ class LectureCrawlerRepository(
     private val objectMapper: ObjectMapper,
 ) {
     companion object {
+        const val SEARCH_PAGE_PATH = "/sugang/cc/cc100InterfaceSrch.action" // 세션 받을 경로
         const val SEARCH_POPUP_PATH = "/sugang/cc/cc101ajax.action"
         const val DEFAULT_SEARCH_POPUP_PARAMS = """t_profPersNo=&workType=+&sbjtSubhCd=000"""
 
@@ -73,23 +77,68 @@ class LectureCrawlerRepository(
             .awaitBody<String>()
             .let { objectMapper.readValue<LectureCrawlerDto>(it) }
 
+    /**
+     * 세션(쿠키)을 받기 위한 워밍업 요청
+     * @return 'Set-Cookie' 헤더 리스트
+     */
+    suspend fun establishSession(): List<String> {
+        return sugangSnuWebClient
+            .get()
+            .uri(SEARCH_PAGE_PATH)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Whale/4.34.340.19 Safari/537.36")
+            .awaitExchange { response ->
+                // 'Set-Cookie' 헤더에 있는 모든 쿠키 값을 리스트로 반환
+                response.headers().header(HttpHeaders.SET_COOKIE)
+            }
+    }
+
+    /**
+     * 엑셀 파일을 다운로드 (쿠키를 수동으로 전달받음)
+     */
     suspend fun downloadLecturesExcel(
         year: Int,
         semester: String,
         language: String = "ko",
-    ): PooledDataBuffer =
-        sugangSnuWebClient
-            .get()
-            .uri { builder ->
-                builder.run {
-                    path(LECTURE_EXCEL_DOWNLOAD_PATH)
-                    query(DEFAULT_LECTURE_EXCEL_DOWNLOAD_PARAMS)
-                    queryParam("srchLanguage", language)
-                    queryParam("srchOpenSchyy", year)
-                    queryParam("srchOpenShtm", semesterToSearchString(semester))
-                    build()
-                }
-            }.accept(MediaType.TEXT_HTML)
+        cookies: List<String> // <-- 세션에서 받아온 쿠키
+    ): PooledDataBuffer {
+        val formData = LinkedMultiValueMap<String, String>()
+
+        DEFAULT_LECTURE_EXCEL_DOWNLOAD_PARAMS.split("&").forEach {
+            val parts = it.split("=", limit = 2)
+            if (parts.size == 2) {
+                formData.add(parts[0], parts[1])
+            }
+        }
+
+        formData.add("srchLanguage", language)
+        formData.add("srchOpenSchyy", year.toString())
+        formData.add("srchOpenShtm", semesterToSearchString(semester))
+
+        return sugangSnuWebClient
+            .post()
+            .uri(LECTURE_EXCEL_DOWNLOAD_PATH)
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            // cURL에서 복사한 모든 헤더
+            .accept(
+                MediaType.TEXT_HTML,
+                MediaType.APPLICATION_XHTML_XML,
+                MediaType.APPLICATION_XML,
+                MediaType.parseMediaType("image/avif"),
+                MediaType.parseMediaType("image/webp"),
+                MediaType.parseMediaType("image/apng"),
+                MediaType.parseMediaType("*/*")
+            )
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Whale/4.34.340.19 Safari/537.36")
+            .header("Referer", "https://sugang.snu.ac.kr/sugang/cc/cc100InterfaceSrch.action")
+            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Origin", "https://sugang.snu.ac.kr")
+            .header("Sec-Fetch-Dest", "document")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Site", "same-origin")
+            .header("Upgrade-Insecure-Requests", "1")
+            // 받아온 쿠키 리스트를 하나의 'Cookie' 헤더로 합쳐서 전송
+            .header(HttpHeaders.COOKIE, cookies.joinToString(separator = "; "))
+            .body(BodyInserters.fromFormData(formData))
             .awaitExchange {
                 if (it.statusCode().is2xxSuccessful) {
                     it.awaitBody()
@@ -97,4 +146,5 @@ class LectureCrawlerRepository(
                     throw it.createExceptionAndAwait()
                 }
             }
+    }
 }

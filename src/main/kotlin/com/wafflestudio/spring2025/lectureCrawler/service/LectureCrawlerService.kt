@@ -6,7 +6,7 @@ import com.wafflestudio.spring2025.lecture.model.LectureSchedule
 import com.wafflestudio.spring2025.lecture.repository.LectureRepository
 import com.wafflestudio.spring2025.lecture.repository.LectureScheduleRepository
 import com.wafflestudio.spring2025.lectureCrawler.util.LectureTimeConverter
-import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import org.apache.poi.hssf.usermodel.HSSFWorkbook // <-- .xls (OLE2) 용
 import org.apache.poi.ss.usermodel.Cell
 import org.springframework.stereotype.Service
 
@@ -21,23 +21,85 @@ class LectureCrawlerService(
         year: Int,
         semester: String,
     ): Int {
-        val lecturesAndSchedules = getLecturesAndSchedules(year, semester)
-        for (lectureAndSchedules in lecturesAndSchedules) {
-            val lecture = lectureAndSchedules.first
-            val schedules = lectureAndSchedules.second
-            lectureRepository.save(lecture)
-            lectureScheduleRepository.saveAll(schedules)
+        // 1. 엑셀을 파싱 (중복된 Lecture 객체 포함)
+        val lecturesAndScheduleInfos = getLecturesAndScheduleInfos(year, semester)
+
+        // 2. (DuplicateKeyException 해결) "교과목번호 + 강좌번호"를 기준으로 그룹화 (trim() 포함)
+        val groupedByLecture = lecturesAndScheduleInfos.groupBy {
+            (it.first.courseNumber + it.first.lectureNumber).trim()
         }
-        return lecturesAndSchedules.size
+
+        // 3. 각 그룹의 *첫 번째* Lecture 객체만 저장
+        val uniqueLecturesToSave = groupedByLecture.values.map { group ->
+            group.first().first
+        }
+
+        // 4. *중복이 제거된* Lecture 리스트를 DB에 저장 (ID 부여됨)
+        lectureRepository.saveAll(uniqueLecturesToSave)
+
+        // 5. 그룹화된 데이터를 기반으로 Schedule 리스트 생성
+        val schedulesToSave = groupedByLecture.values.flatMap { group ->
+
+            val savedLecture = group.first().first
+            val lectureId = savedLecture.id!! // NullPointerException 해결
+
+            // 그룹 내 *모든* ScheduleInfo를 순회
+            group.flatMap { (_, scheduleInfo) ->
+                lectureTimeConverter.parseLectureTimes(scheduleInfo.classTimeText).map { time ->
+                    // "월" -> 1 변환
+                    val dayOfWeekAsInt = convertDayOfWeekToInt(time.dayOfWeek)
+                    LectureSchedule(
+                        lectureId = lectureId,
+                        dayOfWeek = dayOfWeekAsInt, // NumberFormatException 해결
+                        startTime = time.startTime,
+                        endTime = time.endTime,
+                        place = scheduleInfo.location,
+                    )
+                }
+            }
+        }
+
+        // 6. 모든 Schedule 저장
+        lectureScheduleRepository.saveAll(schedulesToSave)
+
+        // 7. 중복 제거된 강의 개수 반환
+        return uniqueLecturesToSave.size
     }
 
-    private suspend fun getLecturesAndSchedules(
+    // "월", "화" -> 1, 2 변환 헬퍼 함수
+    private fun convertDayOfWeekToInt(day: String): Int {
+        return when (day.trim()) {
+            "월" -> 1
+            "화" -> 2
+            "수" -> 3
+            "목" -> 4
+            "금" -> 5
+            "토" -> 6
+            "일" -> 7
+            else -> 0
+        }
+    }
+
+    // Schedule 생성을 위한 임시 DTO
+    private data class ScheduleInfo(
+        val classTimeText: String,
+        val location: String
+    )
+
+    // 세션 요청 및 쿠키 전달
+    private suspend fun getLecturesAndScheduleInfos(
         year: Int,
         semester: String,
-    ): List<Pair<Lecture, List<LectureSchedule>>> {
-        val koreanLectureXlsx = lectureCrawlerRepository.downloadLecturesExcel(year, semester, "ko")
-        val englishLectureXlsx = lectureCrawlerRepository.downloadLecturesExcel(year, semester, "en")
+    ): List<Pair<Lecture, ScheduleInfo>> {
 
+        // 1. (수정) 엑셀 다운로드 전에 세션부터 받도록 호출
+        val sessionCookies = lectureCrawlerRepository.establishSession()
+
+        // 2. (수정) 엑셀 다운로드 시 쿠키 리스트를 전달
+        val koreanLectureXlsx = lectureCrawlerRepository.downloadLecturesExcel(year, semester, "ko", sessionCookies)
+        val englishLectureXlsx = lectureCrawlerRepository.downloadLecturesExcel(year, semester, "en", sessionCookies)
+
+        // (수정) HSSFWorkbook 사용
         val koreanSheet = HSSFWorkbook(koreanLectureXlsx.asInputStream()).getSheetAt(0)
         val englishSheet = HSSFWorkbook(englishLectureXlsx.asInputStream()).getSheetAt(0)
         val fullSheet =
@@ -45,27 +107,31 @@ class LectureCrawlerService(
                 koreanRow + englishRow
             }
 
-        val columnNameIndex = fullSheet[2].associate { it.stringCellValue to it.columnIndex }
+        // (수정) 헤더 trim()
+        val columnNameIndex = fullSheet[2].associate { it.stringCellValue.trim() to it.columnIndex }
 
         return fullSheet
             .drop(3)
             .map { row ->
-                convertRowToLectureAndSchedules(row, columnNameIndex, year, semester)
+                convertRowToLectureAndScheduleInfo(row, columnNameIndex, year, semester)
             }.also {
                 koreanLectureXlsx.release()
                 englishLectureXlsx.release()
             }
     }
 
-    private fun convertRowToLectureAndSchedules(
+    // 엑셀 셀 값 trim()
+    private fun convertRowToLectureAndScheduleInfo(
         row: List<Cell>,
         columnNameIndex: Map<String, Int>,
         year: Int,
         semester: String,
-    ): Pair<Lecture, List<LectureSchedule>> {
+    ): Pair<Lecture, ScheduleInfo> {
+
+        // (수정) 엑셀에서 읽는 모든 문자열 값을 trim()
         fun List<Cell>.getCellByColumnName(key: String): String? =
             columnNameIndex[key]?.let { index ->
-                this.getOrNull(index)?.stringCellValue
+                this.getOrNull(index)?.stringCellValue?.trim() // <-- trim() 추가!
             }
 
         val category = row.getCellByColumnName("교과구분")
@@ -78,11 +144,10 @@ class LectureCrawlerService(
         val lectureTitle = row.getCellByColumnName("교과목명") ?: throw IllegalArgumentException("필수 컬럼 '교과목명'이 없습니다")
         val lectureSubtitle = row.getCellByColumnName("부제명")
         val credit = row.getCellByColumnName("학점")?.toIntOrNull() ?: 0
-        val classTimeText = row.getCellByColumnName("수업교시") ?: ""
-        val location = row.getCellByColumnName("강의실(동-호)(#연건, *평창)") ?: ""
         val instructor = row.getCellByColumnName("주담당교수") ?: ""
 
-        val lectureFullTitle = if (lectureSubtitle.isNullOrEmpty()) lectureTitle else "$lectureTitle ($lectureSubtitle)"
+        val classTimeText = row.getCellByColumnName("수업교시") ?: ""
+        val location = row.getCellByColumnName("강의실(동-호)(#연건, *평창)") ?: ""
 
         val lecture = Lecture(
             year = year,
@@ -92,22 +157,16 @@ class LectureCrawlerService(
             department = department?.replace("null", "")?.ifEmpty { college } ?: college,
             academicCourse = academicCourse,
             academicYear = if (academicCourse != "학사") academicCourse else academicYear,
-            courseNumber = courseNumber,
-            lectureNumber = lectureNumber,
+            courseNumber = courseNumber, // 이미 trim된 값이 들어옴
+            lectureNumber = lectureNumber, // 이미 trim된 값이 들어옴
             courseTitle = lectureTitle,
             credit = credit,
             courseSubtitle = lectureSubtitle,
             instructor = instructor,
         )
-        val schedules = lectureTimeConverter.parseLectureTimes(classTimeText).map {
-            LectureSchedule(
-                lectureId = lecture.id!!,
-                dayOfWeek = it.dayOfWeek.toInt(),
-                startTime = it.startTime,
-                endTime = it.endTime,
-                place = location,
-            )
-        }
-        return Pair(lecture, schedules)
+
+        val scheduleInfo = ScheduleInfo(classTimeText, location)
+
+        return Pair(lecture, scheduleInfo)
     }
 }

@@ -1,6 +1,8 @@
 package com.wafflestudio.spring2025.lectureCrawler.controller
 
+import com.wafflestudio.spring2025.lectureCrawler.dto.LectureCrawlerResponse
 import com.wafflestudio.spring2025.lectureCrawler.service.LectureCrawlerService
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,25 +15,40 @@ class LectureCrawlerController(
     private val lectureCrawlerService: LectureCrawlerService,
 ) {
     fun getYearAndSemester(semester: String): Pair<Int, String> {
-        val year = semester.substring(0,semester.length-2).toInt()
-        val semester = semester.substring(semester.length-1)
-        return Pair(year, semester)
+        val parts = semester.split("-")
+        if (parts.size != 2) {
+            throw IllegalArgumentException("Invalid semester format: $semester")
+        }
+        val year = parts[0].toInt()
+        val semesterStr = parts[1]
+        return Pair(year, semesterStr)
     }
 
+    @Operation(security = [])
     @PostMapping("/api/v1/lectures/fetch")
     suspend fun crawlLectures(
         @RequestParam(defaultValue = "2025-1")
         semester: String,
-    ): ResponseEntity<Map<String, Any>> {
-        val (year, semester) = getYearAndSemester(semester)
-        val count = lectureCrawlerService.crawlLectures(year, semester)
-        return ResponseEntity.ok(
-            mapOf(
-                "message" to "Crawling successful",
-                "semester" to semester,
-                "year" to year,
-                "count" to count,
-            ),
-        )
+    ): ResponseEntity<LectureCrawlerResponse> {
+
+        try {
+            val (year, semester) = getYearAndSemester(semester)
+            val count = lectureCrawlerService.crawlLectures(year, semester)
+
+            return ResponseEntity.ok(
+                LectureCrawlerResponse(
+                    "Crawling successful",
+                    count,
+                    year,
+                    semester,
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+
+            return ResponseEntity.internalServerError().body(
+                LectureCrawlerResponse(e.message ?: "Unknown error", 0, 0, "")
+            )
+        }
     }
 }

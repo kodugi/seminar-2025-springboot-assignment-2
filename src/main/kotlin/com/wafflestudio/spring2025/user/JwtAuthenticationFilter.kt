@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
-import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
@@ -14,45 +13,39 @@ class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
 ) : OncePerRequestFilter() {
 
-    private val pathMatcher = AntPathMatcher()
-
-    private val publicPaths = listOf(
-        "/",
-        "/swagger-ui.html",
-        "/swagger-ui/**",
-        "/v3/api-docs",
-        "/v3/api-docs/**",
-        "/api/v1/auth/**"
-        //
-    )
-
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        if (publicPaths.any { path -> pathMatcher.match(path, request.requestURI) }) {
-            filterChain.doFilter(request, response)
-            return
+        // (수정) 1. 모든 경로 검사 로직(isPermittedPath)을 제거합니다.
+
+        try {
+            val token = resolveToken(request) // 2. 토큰 추출
+
+            if (token != null && jwtTokenProvider.validateToken(token)) { // 3. 토큰 검증
+                val username = jwtTokenProvider.getUsername(token)
+                val authentication = UsernamePasswordAuthenticationToken(
+                    username,
+                    null,
+                    emptyList() // (참고) 실제로는 여기에 UserDetails나 권한을 넣어줘야 합니다.
+                )
+                SecurityContextHolder.getContext().authentication = authentication
+                request.setAttribute("username", username)
+            }
+        } catch (e: Exception) {
+            // (수정) 4. 토큰 검증 실패(서명 오류, 만료 등) 시,
+            //         오류를 반환하는 대신 조용히 SecurityContext를 비웁니다.
+            SecurityContextHolder.clearContext()
         }
 
-        val token = resolveToken(request)
-
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            val username = jwtTokenProvider.getUsername(token)
-            val authentication = UsernamePasswordAuthenticationToken(
-                username,
-                null,
-                emptyList()
-            )
-            SecurityContextHolder.getContext().authentication = authentication
-            request.setAttribute("username", username)
-        } else {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing token")
-            return
-        }
-
+        // (수정) 5. (가장 중요)
+        // 인증에 성공했든(SecurityContext가 채워짐),
+        // 실패했든(SecurityContext가 비어있음),
+        // *항상* 다음 필터로 요청을 넘깁니다.
         filterChain.doFilter(request, response)
+
+        // (수정) 6. "else { response.sendError(401) }" 블록을 완전히 제거했습니다.
     }
 
     private fun resolveToken(request: HttpServletRequest): String? {

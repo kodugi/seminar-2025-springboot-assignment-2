@@ -5,6 +5,7 @@ import com.wafflestudio.spring2025.lecture.dto.core.LectureDto
 import com.wafflestudio.spring2025.lecture.repository.LectureRepository
 import com.wafflestudio.spring2025.lecture.repository.LectureScheduleRepository
 import com.wafflestudio.spring2025.timetable.LectureOverlapException
+import com.wafflestudio.spring2025.timetable.LectureTimeOverlapException
 import com.wafflestudio.spring2025.timetable.TimetableAccessForbiddenException
 import com.wafflestudio.spring2025.timetable.TimetableBlankNameException
 import com.wafflestudio.spring2025.timetable.TimetableDeleteForbiddenException
@@ -127,8 +128,8 @@ class TimetableService(
         }
         lectureRepository.findById(lectureId).orElseThrow { LectureNotFoundException(lectureId) }
         val lectureSchedules = lectureScheduleRepository.findAllByLectureId(lectureId)
-        val otherLectures = timetableLectureRepository.findAllByTimetableId(timetableId)
-        otherLectures.forEach { relation ->
+        val otherTimetableLectures = timetableLectureRepository.findAllByTimetableId(timetableId)
+        otherTimetableLectures.forEach { relation ->
             val otherLectureSchedules = lectureScheduleRepository.findAllByLectureId(relation.lectureId)
             otherLectureSchedules.forEach { otherSchedule ->
                 lectureSchedules.forEach { newSchedule ->
@@ -137,13 +138,19 @@ class TimetableService(
                             otherSchedule.startTime < newSchedule.endTime &&
                                 newSchedule.startTime < otherSchedule.endTime
                         if (overlapped) {
-                            throw LectureOverlapException()
+                            throw LectureTimeOverlapException()
                         }
                     }
                 }
             }
         }
 
+        val lecture = lectureRepository.findById(lectureId).orElseThrow { LectureNotFoundException(lectureId) }
+        otherTimetableLectures.forEach {
+            if(lectureRepository.findById(it.lectureId).orElseThrow { LectureNotFoundException(it.lectureId) }.courseNumber == lecture.courseNumber) {
+                throw LectureOverlapException()
+            }
+        }
         timetableLectureRepository.save(
             TimetableLecture(
                 timetableId = timetableId,
